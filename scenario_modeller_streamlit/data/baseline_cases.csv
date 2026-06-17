@@ -1,0 +1,6 @@
+CaseID,Country,Asset,CaseTag,FinancialEntity,StartYear,EndYear,Status
+CASE001,UK,North Sea Alpha,Growth,FE1001,2026,2035,Active
+CASE002,US,Gulf Beta,Base,FE1002,2026,2038,Active
+CASE003,Angola,Block Gamma,Optimisation,FE1003,2027,2040,Active
+CASE004,Azerbaijan,Caspian Delta,Base,FE1004,2026,2036,Active
+CASE005,Trinidad,Atlantic Epsilon,Downside,FE1005,2028,2040,Active
