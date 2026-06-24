@@ -1,0 +1,1294 @@
+Excel PY Code
++++++++++++++
+
+General Structure
++++++++++++++++++
+
+<< Imports here
+<<AnchorYear
+<< StartYear
+<< EndYear
+<< Number of scenarios
+<< Years PY
+TimerStart
+<< Data Frames
+
+<< Operation: PriceAdj
+<< Operation: CostAdjOpex
+<< Operation: CostAdjCapex
+<< Operation: ProdnAdj
+<< Operation:Generic Funtion ro Process NBP,JKM &HH GM Rates
+<< Operation: PriceAdj_BrentDelta
+<< Operation: PriceAdj_HHDelta
+<< Operation: PriceAdj_NPBDelta
+<< Operation: PriceAdj_JKMDelta
+<< Operations apply_delay
+<< Operations apply_accelerate
+<< Operations apply_increase
+<< Operations apply_dilution
+<< Operations apply_truncate_before
+<< Operations apply_truncate_after
+<< Operations apply_nochange
+<<Global Price Change
+<<Brent Price Change
+<<HH Price Change
+<<NBP Price Change
+<<JKM Price Change
+<< Function Map
+<< Main Calc Engine and shaping
+TimerEnd
+Duration
+
+
++++++++++++++++++++
+
+<< Imports here >>
+
+from datetime import datetime
+
+## Mainly used to kick start the timer function for testing
+
+<< Anchor Year >>
+
+## Excel named range for use in other bits of code, range named AnchorYear and can be set as 2024
+
+<< Start Year >>
+
+## Excel named range for use in other bits of code, range named StartYear and can be set as 2026
+
+<< End Year >>
+
+## Excel named range for use in other bits of code, range named EndYear and can be set as 2040
+
+<< Number of Scenarios >>
+
+## Excel named range for use in other bits of code, range named n_scenarios - might not be required in a proper solution
+
+<< Years PY >>
+
+AnchorYear, StartYear, EndYear = xl("AnchorYear"), xl("StartYear"), xl("EndYear")
+
+## Those Excel named ranges stored as Python variables using xl("namedrange") syntax
+
+<< Timer Start >>
+
+run_start_model = datetime.now()
+out = run_start_model.strftime("%Y-%m-%d %H:%M:%S")
+
+## Simple timer starting function, may not be needed
+
+<< Dataframes Constructor >>
+
+# ============================================================
+# DATAFRAMES CONSTRUCTOR
+# ============================================================
+
+start_year = int(StartYear)
+end_year = int(EndYear)
+print("Start Year:", start_year, "| End Year:", end_year)
+
+# =====================================================
+# Data Profile
+# =====================================================
+data_profile = xl("inputs_profiles")
+headers = ["ID", "Case", "Metric"] + [str(y) for y in range(start_year, end_year + 1)]
+data_profile.columns = headers
+
+data_profile_tall = data_profile.melt(
+    id_vars=["ID", "Case", "Metric"],
+    var_name="Year",
+    value_name="Value"
+)
+data_profile_tall["Year"] = data_profile_tall["Year"].astype(int)
+
+print("\nSample from data_profile_tall:")
+print(data_profile_tall.head())
+
+# =====================================================
+# Unit Rates
+# =====================================================
+unit_rates = xl("Unit_Rates")
+unit_rates.columns = headers
+
+unit_rates_tall = unit_rates.melt(
+    id_vars=["ID", "Case", "Metric"],
+    var_name="Year",
+    value_name="Value"
+)
+unit_rates_tall["Year"] = unit_rates_tall["Year"].astype(int)
+
+print("\nSample from unit_rates_tall:")
+print(unit_rates_tall.head())
+
+# =====================================================
+# Scenario Config
+# =====================================================
+scenario_config_frame = xl("scenario_config")
+n = xl("n_scenarios")
+
+max_scenarios = (scenario_config_frame.shape[1] - 2) // 7
+
+full_headers = ["ID", "Case"]
+for i in range(1, max_scenarios + 1):
+    full_headers += [f"S{i}", f"Op_S{i}", f"P1_S{i}", f"P2_S{i}", f"P3_S{i}", f"P4_S{i}", f"P5_S{i}"]
+
+scenario_config_frame.columns = full_headers
+
+keep_headers = ["ID", "Case"]
+for i in range(1, n + 1):
+    keep_headers += [f"S{i}", f"Op_S{i}", f"P1_S{i}", f"P2_S{i}", f"P3_S{i}", f"P4_S{i}", f"P5_S{i}"]
+
+scenario_config_frame = scenario_config_frame[keep_headers]
+
+def melt_scenario_config(df):
+    scenario_prefixes = sorted({
+        col.split("_")[-1]
+        for col in df.columns
+        if col.startswith(("S", "Op_S", "P1_S", "P2_S", "P3_S", "P4_S", "P5_S"))
+    })
+
+    scenario_rows = []
+
+    for prefix in scenario_prefixes:
+        include_col = f"S{prefix}" if not prefix.startswith("S") else prefix
+        op_col = f"Op_{include_col}"
+        param1_col = f"P1_{include_col}"
+        param2_col = f"P2_{include_col}"
+        param3_col = f"P3_{include_col}"
+        param4_col = f"P4_{include_col}"
+        param5_col = f"P5_{include_col}"
+
+        for col in [include_col, op_col, param1_col, param2_col, param3_col, param4_col, param5_col]:
+            if col not in df.columns:
+                df[col] = np.nan
+
+        tmp = df[["ID", "Case", include_col, op_col, param1_col, param2_col, param3_col,
+                  param4_col, param5_col]].copy()
+        tmp.columns = ["ID", "Case", "Include", "Operation", "Param1", "Param2", "Param3",
+                       "Param4", "Param5"]
+
+        tmp["Scenario"] = include_col if include_col.startswith("S") else f"S{include_col}"
+
+        scenario_rows.append(tmp)
+
+    out = pd.concat(scenario_rows, ignore_index=True)
+    ## TODO Dan Modified this code line 14.11.25 ##
+    out["Include"] = out["Include"].replace(
+        {"Include": True, "Exclude": False, "Yes": True, "No": False, None: False}
+           )
+    ## end of change ##
+           
+    for col in ["Param1", "Param2", "Param3", "Param4", "Param5"]:
+        out[col] = pd.to_numeric(out[col], errors="coerce").fillna(0)
+
+    return out[["Scenario", "ID", "Case", "Include", "Operation", "Param1", "Param2", "Param3", "Param4", "Param5"]]
+
+scenario_instructions_df = melt_scenario_config(scenario_config_frame)
+
+print("\nSample from scenario_instructions_df:")
+print(scenario_instructions_df.head())
+
+# =====================================================
+# Scenario Names
+# =====================================================
+scenario_names_frame = xl("scenario_names")
+scenario_names_frame.columns = ["Scenario", "Name"]
+
+print("\nSample from scenario_names_frame:")
+print(scenario_names_frame.head())
+
+# ============================================================
+# GLOBAL PRICE INPUT
+# ============================================================
+global_price = xl("global_price")
+headers = ["Scenario", "Marker $", "Price Change $", "ChangePrice", "Change", "YearFrom", "YearTo"]
+global_price.columns = headers
+global_price = global_price.drop(columns=["Marker $", "Price Change $"])
+
+print("\nSample from global_price:")
+print(global_price.head())
+
+# ============================================================
+# BRENT PRICE INPUT
+# ============================================================
+brent_price = xl("brent_price")
+headers = ["Scenario", "Marker $", "Price Change $", "ChangePrice", "Change", "YearFrom", "YearTo"]
+brent_price.columns = headers
+brent_price = brent_price.drop(columns=["Marker $", "Price Change $"])
+
+print("\nSample from brent_price:")
+print(brent_price.head())
+
+# ============================================================
+# HENRY HUB PRICE INPUT
+# ============================================================
+hh_price = xl("hh_price")
+headers = ["Scenario", "Marker $", "Price Change $", "ChangePrice", "Change", "YearFrom", "YearTo"]
+hh_price.columns = headers
+hh_price = hh_price.drop(columns=["Marker $", "Price Change $"])
+
+print("\nSample from henry hub:")
+print(hh_price.head())
+
+# ============================================================
+# NPB PRICE INPUT
+# ============================================================
+npb_price = xl("npb_price")
+headers = ["Scenario", "Marker $", "Price Change $", "ChangePrice", "Change", "YearFrom", "YearTo"]
+npb_price.columns = headers
+npb_price = npb_price.drop(columns=["Marker $", "Price Change $"])
+
+print("\nSample from NPB hub:")
+print(npb_price.head())
+
+# ============================================================
+# JKM PRICE INPUT
+# ============================================================
+jkm_price = xl("jkm_price")
+headers = ["Scenario", "Marker $", "Price Change $", "ChangePrice", "Change", "YearFrom", "YearTo"]
+jkm_price.columns = headers
+jkm_price = jkm_price.drop(columns=["Marker $", "Price Change $"])
+
+print("\nSample from JKM hub:")
+print(jkm_price.head())
+
+## This is the data collection bit of code, using excel arrays named ranges and storing them as dataframes. I had to use a trick to append headers as excel arrays only give you the data not column names
+
+<< Operation: PriceAdj >>
+
+def apply_price_adj(df, param1=None, param2=None, param3=None):
+    """
+    Apply a price change (% change in GM_RATE) and calculate the resulting
+    delta on Operating Cash Flow (pre-tax) and RCOP (post-tax).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Subset of data_profile_tall for a single case.
+    param1 : float
+        % change in price (e.g. 0.10 = +10%, -0.10 = -10%).
+    param2 : int
+        Start year from which the price change applies.
+    param3 : int
+        End year until which the price change applies.
+    """
+    df = df.copy()
+    if pd.isna(param1):
+        return df
+
+    price_change = float(param1)
+    start_year = int(param2) if pd.notna(param2) and param2 != 0 else YEAR_MIN
+    end_year = int(param3) if pd.notna(param3) and param3 != 0 else YEAR_MAX
+
+    # --- Get case ID to filter relevant unit rates ---
+    case_id = df["ID"].iloc[0]
+
+    # --- 1. Extract GM_RATE for this case ---
+    gm_df = (
+        unit_rates_tall.loc[
+            (unit_rates_tall["ID"] == case_id)
+            & (unit_rates_tall["Metric"] == "GM_RATE"),
+            ["Year", "Value"]
+        ]
+        .rename(columns={"Value": "GM_RATE"})
+    )
+
+    # --- 2. Extract Production for this case ---
+    prod_df = (
+        df.loc[df["Metric"] == "Revenue Generating Production", ["Year", "Value"]]
+        .rename(columns={"Value": "Revenue Generating Production"})
+    )
+
+    # --- 3. Merge both GM_RATE + Production onto df ---
+    merged = (
+        df.merge(prod_df, on="Year", how="left")
+          .merge(gm_df, on="Year", how="left")
+    )
+
+    # --- 4. Compute ΔGM only from start_year onward ---
+    mask = merged["Year"] >= start_year
+    merged.loc[mask, "ΔGM"] = (
+        merged.loc[mask, "Revenue Generating Production"].fillna(0)
+        * merged.loc[mask, "GM_RATE"].fillna(0)
+        * price_change
+    )
+
+    # --- 5. Apply ΔGM to Ops Cash and RCOP metrics ---
+    target_metrics = [
+        "Gross Margin",
+        "EBITDA (Underlying)",
+        "RCOP (Underlying)",
+        "Operating Cashflow",
+        "Pre Tax Cash Flow"
+    ]
+    mask_metric = (
+        merged["Metric"].isin(target_metrics)
+        & (merged["Year"] >= start_year)
+        & (merged["Year"] <= end_year)
+    )
+    merged.loc[mask_metric, "Value"] = (
+        merged.loc[mask_metric, "Value"].fillna(0)
+        + merged.loc[mask_metric, "ΔGM"].fillna(0)
+    )
+
+    # --- 6. Drop temporary columns ---
+    drop_cols = ["Revenue Generating Production", "GM_RATE", "ΔGM"]
+    merged = merged.drop(columns=[c for c in drop_cols if c in merged.columns])
+
+    return merged
+
+<< Operation: CostAdjOpex >>
+
+def apply_CostAdjOpex(df, param1=None, param2=None, param3=None):
+    """
+    Apply an OPEX change (% change in Cash Costs) and calculate the resulting delta.
+    Also adjust related metrics: EBITDA, RCOP, Operating Cashflow, Pre Tax Cash Flow.
+    """
+    df = df.copy()
+    if pd.isna(param1):
+        print("⚠️ No param1 provided, returning original DataFrame.")
+        return df
+
+    opex_change = float(param1)
+    start_year = int(param2) if pd.notna(param2) and param2 != 0 else YEAR_MIN
+    end_year = int(param3) if pd.notna(param3) and param3 != 0 else YEAR_MAX
+
+    # --- Debug info ---
+    print(f"\n✅ Applying OPEX Adjustment:")
+    print(f"Param1 (Change %): {opex_change}, Start Year: {start_year}, End Year: {end_year}")
+
+    # --- Extract Cash Costs ---
+    opex_df = (
+        df.loc[df["Metric"] == "Cash Costs", ["Year", "Value"]]
+        .rename(columns={"Value": "Base_OPEX"})
+    )
+
+    merged = df.merge(opex_df, on="Year", how="left")
+
+    # --- Compute ΔOPEX ---
+    mask = (merged["Year"] >= start_year) & (merged["Year"] <= end_year)
+    merged.loc[mask, "ΔOPEX"] = merged.loc[mask, "Base_OPEX"].fillna(0) * opex_change
+
+    # --- Apply to Cash Costs ---
+    mask_cash_cost = (merged["Metric"] == "Cash Costs") & mask
+    merged.loc[mask_cash_cost, "Value"] = (
+        merged.loc[mask_cash_cost, "Value"].fillna(0) + merged.loc[mask_cash_cost, "ΔOPEX"].fillna(0)
+    )
+
+    # --- Apply to related metrics ---
+    target_metrics = [
+        "EBITDA (Underlying)",
+        "RCOP (Underlying)",
+        "Operating Cashflow",
+        "Pre Tax Cash Flow"
+    ]
+    mask_target = merged["Metric"].isin(target_metrics) & mask
+    merged.loc[mask_target, "Value"] = (
+        merged.loc[mask_target, "Value"].fillna(0) + merged.loc[mask_target, "ΔOPEX"].fillna(0)
+    )
+
+    # --- Show only changed rows ---
+    changed_rows = merged.loc[(mask_cash_cost | mask_target), ["Metric", "Year", "Value", "ΔOPEX"]]
+    if changed_rows.empty:
+        print("⚠️ No rows were updated. Check metric names and year range.")
+    else:
+        print("\n🔍 Changed rows after adjustment:")
+        print(changed_rows)
+
+    # Drop temp columns
+    merged = merged.drop(columns=["Base_OPEX", "ΔOPEX"], errors="ignore")
+
+    return merged
+
+<< Operation: CostAdjCapex >>
+###todo create variant of priceadj PY function for capex adjustments - refer to logic tab
+def apply_CostAdjCapex(df, param1=None, param2=None, param3=None):
+    """
+    Apply an CAPEX change (% change in Cash Capex) and calculate the resulting delta.
+    Also adjust related metrics: EBITDA, RCOP, Operating Cashflow, Pre Tax Cash Flow.
+    """
+    df = df.copy()
+    if pd.isna(param1):
+        print("⚠️ No param1 provided, returning original DataFrame.")
+        return df
+
+    capex_change = float(param1)
+    start_year = int(param2) if pd.notna(param2) and param2 != 0 else YEAR_MIN
+    end_year = int(param3) if pd.notna(param3) and param3 != 0 else YEAR_MAX
+
+    # --- Debug info ---
+    print(f"\n✅ Applying CAPEX Adjustment:")
+    print(f"Param1 (Change %): {capex_change}, Start Year: {start_year}, End Year: {end_year}")
+
+    # --- Extract Cash Capex ---
+    capex_df = (
+        df.loc[df["Metric"] == "Cash Capex", ["Year", "Value"]]
+        .rename(columns={"Value": "Base_CAPEX"})
+    )
+
+    merged = df.merge(capex_df, on="Year", how="left")
+
+    # --- Compute ΔCAPEX ---
+    mask = (merged["Year"] >= start_year) & (merged["Year"] <= end_year)
+    merged.loc[mask, "ΔCAPEX"] = merged.loc[mask, "Base_CAPEX"].fillna(0) * capex_change
+
+    # --- Apply to Cash Capex ---
+    mask_cash_capex = (merged["Metric"] == "Cash Capex") & mask
+    merged.loc[mask_cash_capex, "Value"] = (
+        merged.loc[mask_cash_capex, "Value"].fillna(0) + merged.loc[mask_cash_capex, "ΔCAPEX"].fillna(0)
+    )
+
+    # --- Apply to related metrics ---
+    target_metrics = [
+                "Operating Cashflow",
+        "Pre Tax Cash Flow"
+    ]
+    mask_target = merged["Metric"].isin(target_metrics) & mask
+    merged.loc[mask_target, "Value"] = (
+        merged.loc[mask_target, "Value"].fillna(0) + merged.loc[mask_target, "ΔCAPEX"].fillna(0)
+    )
+
+    # --- Show only changed rows ---
+    changed_rows = merged.loc[(mask_cash_capex | mask_target), ["Metric", "Year", "Value", "ΔCAPEX"]]
+    if changed_rows.empty:
+        print("⚠️ No rows were updated. Check metric names and year range.")
+    else:
+        print("\n🔍 Changed rows after adjustment:")
+        print(changed_rows)
+
+    # Drop temp columns
+    merged = merged.drop(columns=["Base_CAPEX", "ΔCAPEX"], errors="ignore")
+
+    return merged
+
+<< Operation: ProdnAdj >>
+
+def apply_ProdnAdj(df, param1=None, param2=None, param3=None):
+    """
+    Production adjustment using BASE production to compute all deltas:
+    ΔGM, ΔOPEX, ΔDD&A applied additively (signs already correct in profiles).
+    """
+
+    # ---------------------------------------
+    # Production metric name declared here
+    # ---------------------------------------
+    PRODUCTION_METRIC = "Production"
+
+    df = df.copy()
+    if pd.isna(param1):
+        return df
+
+    change = float(param1)        # e.g. 0.10 or -0.10
+    start_year = int(param2) if pd.notna(param2) and param2 != 0 else YEAR_MIN
+    end_year   = int(param3) if pd.notna(param3) and param3 != 0 else YEAR_MAX
+
+    case_id = df["ID"].iloc[0]
+
+    # ---------------------------------------
+    # 1. GET BASE PRODUCTION
+    # ---------------------------------------
+    prod_df = (
+        df[df["Metric"] == PRODUCTION_METRIC][["Year", "Value"]]
+        .rename(columns={"Value": "Base_PRODN"})
+    )
+
+    merged = df.merge(prod_df, on="Year", how="left")
+
+    # ---------------------------------------
+    # 2. UPDATE PRODUCTION (only for production metric)
+    # ---------------------------------------
+    mask_year = (merged["Year"] >= start_year) & (merged["Year"] <= end_year)
+    mask_prod = (merged["Metric"] == PRODUCTION_METRIC) & mask_year
+
+    merged.loc[mask_prod, "Value"] = (
+        merged.loc[mask_prod, "Base_PRODN"].fillna(0) * (1 + change)
+    )
+
+    # ---------------------------------------
+    # 3. MERGE UNIT RATES
+    # ---------------------------------------
+    gm_rate  = unit_rates_tall.query("ID == @case_id and Metric == 'GM_RATE'")[["Year","Value"]].rename(columns={"Value":"GM_RATE"})
+    opex_rate = unit_rates_tall.query("ID == @case_id and Metric == 'OPEX_RATE'")[["Year","Value"]].rename(columns={"Value":"OPEX_RATE"})
+    dda_rate = unit_rates_tall.query("ID == @case_id and Metric == 'DDA_RATE'")[["Year","Value"]].rename(columns={"Value":"DDA_RATE"})
+    capex_rate = unit_rates_tall.query("ID == @case_id and Metric == 'CAPEX_RATE'")[["Year","Value"]].rename(columns={"Value":"CAPEX_RATE"})
+
+    merged = (
+        merged.merge(gm_rate,  on="Year", how="left")
+              .merge(opex_rate, on="Year", how="left")
+              .merge(dda_rate,  on="Year", how="left")
+              .merge(capex_rate, on="Year", how="left")
+    )
+
+    # ---------------------------------------
+    # 4. FINANCIAL DELTAS (USE BASE PRODN)
+    # ---------------------------------------
+    merged["ΔGM"]   = merged["Base_PRODN"].fillna(0) * merged["GM_RATE"].fillna(0) * change
+    merged["ΔOPEX"] = merged["Base_PRODN"].fillna(0) * merged["OPEX_RATE"].fillna(0) * change
+    merged["ΔDDA"]  = merged["Base_PRODN"].fillna(0) * merged["DDA_RATE"].fillna(0) * change
+    merged["ΔCAPEX"]  = merged["Base_PRODN"].fillna(0) * merged["CAPEX_RATE"].fillna(0) * change
+
+    # ---------------------------------------
+    # 5. APPLY DELTAS ADDITIVELY TO TARGET METRICS
+    # ---------------------------------------
+
+    # Gross Margin
+    gm_mask = (merged["Metric"] == "Gross Margin") & mask_year
+    merged.loc[gm_mask, "Value"] += merged.loc[gm_mask, "ΔGM"]
+
+    # Opex
+    opex_mask = (merged["Metric"] == "Cash Costs") & mask_year
+    merged.loc[opex_mask, "Value"] += merged.loc[opex_mask, "ΔOPEX"]
+
+    # Capex
+    capex_mask = (merged["Metric"] == "Cash Capex") & mask_year
+    merged.loc[capex_mask, "Value"] += merged.loc[capex_mask, "ΔCAPEX"]
+
+    # DD&A
+    dda_mask = (merged["Metric"] == "DD&A") & mask_year
+    merged.loc[dda_mask, "Value"] += merged.loc[dda_mask, "ΔDDA"]
+
+    # EBITDA
+    eb_mask = (merged["Metric"] == "EBITDA (Underlying)") & mask_year
+    merged.loc[eb_mask, "Value"] += (
+        merged.loc[eb_mask, "ΔGM"] + 
+        merged.loc[eb_mask, "ΔOPEX"]
+    )
+
+    # RCOP
+    rc_mask = (merged["Metric"] == "RCOP (Underlying)") & mask_year
+    merged.loc[rc_mask, "Value"] += (
+        merged.loc[rc_mask, "ΔGM"] +
+        merged.loc[rc_mask, "ΔOPEX"] +
+        merged.loc[rc_mask, "ΔDDA"]
+    )
+
+    # Operating Cashflow
+    ocf_mask = (merged["Metric"] == "Operating Cashflow") & mask_year
+    merged.loc[ocf_mask, "Value"] += (
+        merged.loc[ocf_mask, "ΔGM"] + 
+        merged.loc[ocf_mask, "ΔOPEX"] + 
+        merged.loc[ocf_mask, "ΔCAPEX"]
+        )
+
+    # Pre Tax CF
+    ptcf_mask = (merged["Metric"] == "Pre Tax Cash Flow") & mask_year
+    merged.loc[ptcf_mask, "Value"] += (
+        merged.loc[ptcf_mask, "ΔGM"] + 
+        merged.loc[ptcf_mask, "ΔOPEX"] + 
+        merged.loc[ptcf_mask, "ΔCAPEX"]
+    )
+
+    # ---------------------------------------
+    # 6. CLEAN UP
+    # ---------------------------------------
+    drop_cols = ["Base_PRODN", "GM_RATE", "OPEX_RATE", "DDA_RATE", "CAPEX_RATE", "ΔGM", "ΔOPEX", "ΔDDA", "ΔCAPEX"]
+    merged = merged.drop(columns=[c for c in drop_cols if c in merged.columns], errors="ignore")
+
+    return merged
+
+
+<< << Operation:Generic Funtion ro Process NBP,JKM &HH GM Rates >> [not sure we need this]
+
+
+##tODO create variant of priceadj PY function for HH - refer to logic tab
+def apply_marker_price_adj(df, param1=None, param2=None, param3=None, marker="HH_GM_RATE"):
+    """
+    Apply a marker-specific price change (% change in marker GM rate) and calculate the resulting
+    delta on Gross Margin and related metrics.
+
+    Formula:
+    ΔGM = Gas Production × Price Change Fraction × Marker GM Rate
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Subset of data_profile_tall for a single case.
+    param1 : float
+        % change in marker price (e.g., 0.10 = +10%, -0.10 = -10%).
+    param2 : int
+        Start year from which the price change applies.
+    param3 : int
+        End year until which the price change applies.
+    marker : str
+        Marker metric name (e.g., "HH_GM_RATE", "NBP_GM_RATE", "JKM_GM_RATE").
+    """
+    df = df.copy()
+    if pd.isna(param1):
+        print("⚠️ No param1 provided, returning original DataFrame.")
+        return df
+
+    price_change = float(param1)
+    start_year = int(param2) if pd.notna(param2) and param2 != 0 else YEAR_MIN
+    end_year = int(param3) if pd.notna(param3) and param3 != 0 else YEAR_MAX
+
+    # --- Debug info ---
+    print(f"\n✅ Applying {marker} Price Adjustment:")
+    print(f"Param1 (Change %): {price_change}, Start Year: {start_year}, End Year: {end_year}")
+
+    case_id = df["ID"].iloc[0]
+
+    # --- Extract Gas Production ---
+    gas_df = df.loc[df["Metric"] == "Gas Production", ["Year", "Value"]]
+    gas_df = gas_df.rename(columns={"Value": "Gas_Production"})
+
+    # --- Extract Marker Rate ---
+    marker_df = unit_rates_tall.loc[
+        (unit_rates_tall["ID"] == case_id) & (unit_rates_tall["Metric"] == marker),
+        ["Year", "Value"]
+    ].rename(columns={"Value": marker})
+
+    # --- Merge data ---
+    merged = df.merge(gas_df, on="Year", how="left").merge(marker_df, on="Year", how="left")
+
+    # --- Compute ΔGM ---
+    mask = (merged["Year"] >= start_year) & (merged["Year"] <= end_year)
+    merged.loc[mask, "ΔGM"] = (
+        merged.loc[mask, "Gas_Production"].fillna(0)
+        * merged.loc[mask, marker].fillna(0)
+        * price_change
+    )
+
+    # --- Apply ΔGM to relevant metrics ---
+    target_metrics = [
+        "Gross Margin",
+        "EBITDA (Underlying)",
+        "RCOP (Underlying)",
+        "Operating Cashflow",
+        "Pre Tax Cash Flow"
+    ]
+    mask_target = merged["Metric"].isin(target_metrics) & mask
+    merged.loc[mask_target, "Value"] = (
+        merged.loc[mask_target, "Value"].fillna(0) + merged.loc[mask_target, "ΔGM"].fillna(0)
+    )
+
+    # --- Show changed rows ---
+    changed_rows = merged.loc[mask_target, ["Metric", "Year", "Value", "ΔGM"]]
+    if changed_rows.empty:
+        print("⚠️ No rows were updated. Check metric names and year range.")
+    else:
+        print(f"\n🔍 Changed rows after {marker} adjustment:")
+        print(changed_rows)
+
+    # --- Drop temp columns ---
+    drop_cols = ["Gas_Production", marker, "ΔGM"]
+    merged = merged.drop(columns=[c for c in drop_cols if c in merged.columns])
+
+    return merged
+
+
+<< Operation: PriceAdj_BrentDelta >> 
+
+##tODO create variant of priceadj PY function for brent - refer to logic tab
+def apply_brent_price_adj(df, param1=None, param2=None, param3=None):
+    """
+    Apply a BRENT price change (% change in BRENT_GM_RATE) and calculate the resulting
+    delta on Gross Margin and related metrics.
+
+    Formula:
+    ΔGM = Liquids Production × Price Change Fraction × BRENT_GM_RATE
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Subset of data_profile_tall for a single case.
+    param1 : float
+        % change in BRENT price (e.g., 0.10 = +10%, -0.10 = -10%).
+    param2 : int
+        Start year from which the price change applies.
+    param3 : int
+        End year until which the price change applies.
+    """
+    df = df.copy()
+    if pd.isna(param1):
+        print("⚠️ No param1 provided, returning original DataFrame.")
+        return df
+
+    price_change = float(param1)
+    start_year = int(param2) if pd.notna(param2) and param2 != 0 else YEAR_MIN
+    end_year = int(param3) if pd.notna(param3) and param3 != 0 else YEAR_MAX
+
+    # --- Debug info ---
+    print(f"\n✅ Applying BRENT Price Adjustment:")
+    print(f"Param1 (Change %): {price_change}, Start Year: {start_year}, End Year: {end_year}")
+
+    case_id = df["ID"].iloc[0]
+
+    # --- Extract Liquids Production ---
+    oil_df = df.loc[df["Metric"] == "Liquids Production", ["Year", "Value"]]
+    oil_df = oil_df.rename(columns={"Value": "Liquids_Production"})
+
+    # --- Extract BRENT_GM_RATE ---
+    brent_df = unit_rates_tall.loc[
+        (unit_rates_tall["ID"] == case_id) & (unit_rates_tall["Metric"] == "BRENT_GM_RATE"),
+        ["Year", "Value"]
+    ].rename(columns={"Value": "BRENT_GM_RATE"})
+
+    # --- Merge data ---
+    merged = df.merge(oil_df, on="Year", how="left").merge(brent_df, on="Year", how="left")
+
+    # --- Compute ΔGM ---
+    mask = (merged["Year"] >= start_year) & (merged["Year"] <= end_year)
+    merged.loc[mask, "ΔGM"] = (
+        merged.loc[mask, "Liquids_Production"].fillna(0)
+        * merged.loc[mask, "BRENT_GM_RATE"].fillna(0)
+        * price_change
+    )
+
+    # --- Apply ΔGM to relevant metrics ---
+    target_metrics = [
+        "Gross Margin",
+        "EBITDA (Underlying)",
+        "RCOP (Underlying)",
+        "Operating Cashflow",
+        "Pre Tax Cash Flow"
+    ]
+    mask_target = merged["Metric"].isin(target_metrics) & mask
+    merged.loc[mask_target, "Value"] = (
+        merged.loc[mask_target, "Value"].fillna(0) + merged.loc[mask_target, "ΔGM"].fillna(0)
+    )
+
+    # --- Show changed rows ---
+    changed_rows = merged.loc[mask_target, ["Metric", "Year", "Value", "ΔGM"]]
+    if changed_rows.empty:
+        print("⚠️ No rows were updated. Check metric names and year range.")
+    else:
+        print("\n🔍 Changed rows after BRENT adjustment:")
+        print(changed_rows)
+
+    # --- Drop temp columns ---
+    drop_cols = ["Liquids_Production", "BRENT_GM_RATE", "ΔGM"]
+    merged = merged.drop(columns=[c for c in drop_cols if c in merged.columns])
+
+    return merged
+
+<< Operation: PriceAdj_HHDelta >> 
+
+def PriceAdj_HHDelta(df, param1=None, param2=None, param3=None):
+    return apply_marker_price_adj(df, param1, param2, param3, marker="HH_GM_RATE")
+
+<< Operation: PriceAdj_NPBDelta >>
+
+def PriceAdj_NBPDelta(df, param1=None, param2=None, param3=None):
+    return apply_marker_price_adj(df, param1, param2, param3, marker="NBP_GM_RATE")
+
+<< Operation: PriceAdj_JKMDelta >>
+
+def PriceAdj_JKMDelta(df, param1=None, param2=None, param3=None):
+    return apply_marker_price_adj(df, param1, param2, param3, marker="JKM_GM_RATE")
+
+<< Operations apply_delay >>
+# ============================================================
+# OPERATION FUNCTIONS
+# ============================================================
+
+def apply_delay(df, param1=None, param2=None, param3=None):
+    """Shift profile forward by N years (Param1)."""
+    years = int(param1) - 1 if pd.notna(param1) else 0  # Adjust for time 0
+    df = df.copy()
+    df["Year"] += years
+    return df[df["Year"] <= YEAR_MAX].copy()
+
+
+    ## Done TODO - might need to do param - 1 to account for time 0-- Done 
+
+<< Operations apply_accelerate >>
+def apply_accelerate(df, param1=None, param2=None, param3=None):
+    """Shift profile backward by N years (Param1)."""
+    years = int(param1) - 1 if pd.notna(param1) else 0  # Adjust for time 0
+    df = df.copy()
+    df["Year"] -= years
+    return df[df["Year"] >= YEAR_MIN].copy()
+
+<< << Operations apply_increase >>
+# ============================================================
+# OPERATION FUNCTIONS
+# ============================================================
+
+
+def apply_increase(df, param1=None, param2=None, param3=None):
+    """
+    Proportionally increase Value by (1 + Param1) for all years >= Param2 and <= Param3.
+    Param1 = fractional uplift (e.g., 0.1 = +10%)
+    Param2 = start year (e.g., 2030)
+    Param3 = end year (optional)
+    """
+    df = df.copy()
+    if pd.isna(param1):
+        return df
+    fraction = float(param1)
+    start_year = int(param2) if pd.notna(param2) else df["Year"].min()
+    end_year = int(param3) if pd.notna(param3) else df["Year"].max()
+
+    df.loc[(df["Year"] >= start_year) & (df["Year"] <= end_year), "Value"] *= (1 + fraction)
+    return df
+
+<< Operations apply_dilution >>
+# ============================================================
+# OPERATION FUNCTIONS
+# ============================================================
+
+def apply_dilution(df, param1=None, param2=None, param3=None):
+    """
+    Reduce Value by (1 - Param1) for all years >= Param2 and <= Param3.
+    Param1 = fraction (e.g., 0.25)
+    Param2 = start year (e.g., 2030)
+    Param3 = end year (optional)
+    """
+    df = df.copy()
+    if pd.isna(param1) or pd.isna(param2):
+        return df
+    fraction = float(param1)
+    start_year = int(param2) if pd.notna(param2) else df["Year"].min()
+    end_year = int(param3) if pd.notna(param3) else df["Year"].max()
+
+    df.loc[(df["Year"] >= start_year) & (df["Year"] <= end_year), "Value"] *= (1 - fraction)
+    return df
+
+<< << Operations apply_truncate_before >>
+
+# ============================================================
+# OPERATION FUNCTIONS
+# ============================================================
+
+def apply_truncate_before(df, param1=None, param2=None, param3=None):
+    """Keep only records Year >= Param1."""
+    df = df.copy()
+    if pd.isna(param1):
+        return df
+    cut = int(param1)
+    return df[df["Year"] >= cut].copy()
+
+
+<< << Operations apply_truncate_after >> 
+
+# ============================================================
+# OPERATION FUNCTIONS
+# ============================================================
+
+def apply_truncate_after(df, param1=None, param2=None, param3=None):
+    """Keep only records Year <= Param1."""
+    df = df.copy()
+    if pd.isna(param1):
+        return df
+    cut = int(param1)
+    return df[df["Year"] <= cut].copy()
+
+<< Operations apply_nochange >>
+
+# ============================================================
+# OPERATION FUNCTIONS
+# ============================================================
+
+def apply_nochange(df, param1=None, param2=None, param3=None):
+    """Return data unchanged."""
+    return df
+
+<< <<Global Price Change >>
+
+# ============================================================
+# GLOBAL PRICE ADJUSTMENT WRAPPER
+# ============================================================
+
+def apply_global_price(df, global_price_df, scen_name):
+    """
+    Applies a global price change to all cases in the scenario if specified
+    in the global_price_df table.
+
+    Parameters
+    ----------
+    scenario_df : pd.DataFrame
+        Combined tall data for a single scenario.
+    global_price_df : pd.DataFrame
+        Table with columns [Scenario, ChangePrice, Change, YearFrom, YearTo].
+    scen_name : str
+        Scenario identifier (e.g., 'S1', 'S2').
+
+    Returns
+    -------
+    pd.DataFrame
+        Scenario data with price adjustment applied (if activated).
+    """
+    # Find the relevant rule for this scenario
+    rule = global_price_df.query("Scenario == @scen_name")
+    if rule.empty:
+        return df
+
+    if bool(rule["ChangePrice"].iloc[0]) is not True:
+        return df  # skip if ChangePrice = FALSE
+
+    # Extract parameters
+    price_change = float(rule["Change"].iloc[0]) if pd.notna(rule["Change"].iloc[0]) else 0
+    start_year = int(rule["YearFrom"].iloc[0]) if pd.notna(rule["YearFrom"].iloc[0]) else YEAR_MIN
+    end_year   = int(rule["YearTo"].iloc[0]) if pd.notna(rule["YearTo"].iloc[0]) else YEAR_MAX
+
+    # Apply using your existing function
+    adjusted = apply_price_adj(df.copy(), price_change, start_year, end_year)
+    
+    print(f"\n--- Adjusted DataFrame for scenario {scen_name} ---")
+    print(adjusted.head(10))  # Print first 10 rows after adjustment
+
+
+    return adjusted
+
+<< <<Brent Price Change >>
+
+# ============================================================
+# BRENT PRICE ADJUSTMENT WRAPPER
+# ============================================================
+def apply_Brent_price(df, brent_price_df, scen_name):
+    """
+    Applies Brent price adjustment to all cases in the scenario if specified
+    in the brent_price_df table.
+    """
+    # Find the relevant rule for this scenario
+    rule = brent_price_df.query("Scenario == @scen_name")
+    if rule.empty:
+        return df
+
+    if bool(rule["ChangePrice"].iloc[0]) is not True:
+        return df  # skip if ChangeBrent = FALSE
+
+    # Extract parameters
+    brent_change = float(rule["Change"].iloc[0]) if pd.notna(rule["Change"].iloc[0]) else 0
+    start_year = int(rule["YearFrom"].iloc[0]) if pd.notna(rule["YearFrom"].iloc[0]) else YEAR_MIN
+    end_year   = int(rule["YearTo"].iloc[0]) if pd.notna(rule["YearTo"].iloc[0]) else YEAR_MAX
+
+   
+    # Apply using a Brent-specific adjustment function (or reuse apply_price_adj if logic is same)
+    adjusted = apply_brent_price_adj(df.copy(), brent_change, start_year, end_year)
+
+    print(f"\n--- Adjusted DataFrame for Brent price in scenario {scen_name} ---")
+    print(adjusted.head(10))
+
+    return adjusted
+
+
+<< <<HH Price Change >>
+
+# ============================================================
+# HH PRICE ADJUSTMENT WRAPPER
+# ============================================================
+
+def apply_hh_price(df, hh_price_df, scen_name):
+    """
+    Applies a Henry Hub (HH) price change to all cases in the scenario if specified
+    in the hh_price_df table.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Combined tall data for a single scenario.
+    hh_price_df : pd.DataFrame
+        Table with columns [Scenario, ChangeHHPrice, Change, YearFrom, YearTo].
+    scen_name : str
+        Scenario identifier (e.g., 'S1', 'S2').
+
+    Returns
+    -------
+    pd.DataFrame
+        Scenario data with HH price adjustment applied (if activated).
+    """
+    # Find the relevant rule for this scenario
+    rule = hh_price_df.query("Scenario == @scen_name")
+    if rule.empty:
+        return df
+
+    if bool(rule["ChangePrice"].iloc[0]) is not True:
+        return df  # skip if ChangeHHPrice = FALSE
+
+    # Extract parameters
+    hh_change = float(rule["Change"].iloc[0]) if pd.notna(rule["Change"].iloc[0]) else 0
+    start_year = int(rule["YearFrom"].iloc[0]) if pd.notna(rule["YearFrom"].iloc[0]) else YEAR_MIN
+    end_year   = int(rule["YearTo"].iloc[0]) if pd.notna(rule["YearTo"].iloc[0]) else YEAR_MAX
+
+    print(f"Applying HH price adjustment: {hh_change*100:.2f}% from {start_year} to {end_year}")
+
+    # Apply using your existing function (or a specific HH adjustment function if needed)
+    adjusted = PriceAdj_HHDelta(df.copy(), hh_change, start_year, end_year)
+
+    print(f"\n--- Adjusted DataFrame for HH price in scenario {scen_name} ---")
+    print(adjusted.head(10))  # Print first 10 rows after adjustment
+
+    return adjusted
+
+
+<<NBP Price Change >>
+
+
+# ============================================================
+# NBP PRICE ADJUSTMENT WRAPPER
+# ============================================================
+
+def apply_nbp_price(df, nbp_price_df, scen_name):
+    """
+    Applies a NBP price change to all cases in the scenario if specified
+    in the hh_price_df table.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Combined tall data for a single scenario.
+    nbp_price_df : pd.DataFrame
+        Table with columns [Scenario, ChangePrice, Change, YearFrom, YearTo].
+    scen_name : str
+        Scenario identifier (e.g., 'S1', 'S2').
+
+    Returns
+    -------
+    pd.DataFrame
+        Scenario data with NBP price adjustment applied (if activated).
+    """
+    # Find the relevant rule for this scenario
+    rule = nbp_price_df.query("Scenario == @scen_name")
+    if rule.empty:
+        return df
+    
+    if bool(rule["ChangePrice"].iloc[0]) is not True:
+        return df  # skip if ChangePrice = FALSE
+
+    # Extract parameters
+    nbp_change = float(rule["Change"].iloc[0]) if pd.notna(rule["Change"].iloc[0]) else 0
+    start_year = int(rule["YearFrom"].iloc[0]) if pd.notna(rule["YearFrom"].iloc[0]) else YEAR_MIN
+    end_year   = int(rule["YearTo"].iloc[0]) if pd.notna(rule["YearTo"].iloc[0]) else YEAR_MAX
+
+   
+    # Apply using your existing function (or a specific NBP adjustment function if needed)
+    adjusted = PriceAdj_NBPDelta(df.copy(), nbp_change, start_year, end_year)
+
+    # print(f"\n--- Adjusted DataFrame for HH price in scenario {scen_name} ---")
+    # print(adjusted.head(10))  # Print first 10 rows after adjustment
+
+    return adjusted
+
+<<JKM Price Change >>
+
+# ============================================================
+# JKM PRICE ADJUSTMENT WRAPPER
+# ============================================================
+
+def apply_jkm_price(df, jkm_price_df, scen_name):
+    """
+    Applies a jkm price change to all cases in the scenario if specified
+    in the jkm_price_df table.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Combined tall data for a single scenario.
+    jkm_price_df : pd.DataFrame
+        Table with columns [Scenario, ChangePrice, Change, YearFrom, YearTo].
+    scen_name : str
+        Scenario identifier (e.g., 'S1', 'S2').
+
+    Returns
+    -------
+    pd.DataFrame
+        Scenario data with jkm price adjustment applied (if activated).
+    """
+    # Find the relevant rule for this scenario
+    rule = jkm_price_df.query("Scenario == @scen_name")
+    if rule.empty:
+        return df
+   
+    if bool(rule["ChangePrice"].iloc[0]) is not True:
+        return df  # skip if ChangePrice = FALSE
+
+    # Extract parameters
+    jkm_change = float(rule["Change"].iloc[0]) if pd.notna(rule["Change"].iloc[0]) else 0
+    start_year = int(rule["YearFrom"].iloc[0]) if pd.notna(rule["YearFrom"].iloc[0]) else YEAR_MIN
+    end_year   = int(rule["YearTo"].iloc[0]) if pd.notna(rule["YearTo"].iloc[0]) else YEAR_MAX
+
+    
+
+    # Apply using your existing function (or a specific HH adjustment function if needed)
+    adjusted = PriceAdj_JKMDelta(df.copy(), jkm_change, start_year, end_year)
+
+
+    return adjusted
+
+
+<< << Function Map >>
+# ============================================================
+# FUNCTION MAP
+# ============================================================
+operation_functions = {
+    "Delay": apply_delay,
+    "Accelerate": apply_accelerate,
+    "Increase": apply_increase,
+    "Dilution": apply_dilution,
+    "CostAdjOpex":apply_CostAdjOpex,
+    "CostAdjCapex":apply_CostAdjCapex,
+    "ProdnAdj": apply_ProdnAdj,
+    "PriceAdj_BrentDelta":apply_brent_price_adj,
+    "PriceAdj_HHDelta":PriceAdj_HHDelta,
+    "PriceAdj_NBPDelta":PriceAdj_NBPDelta,
+    "PriceAdj_JKMDelta":PriceAdj_JKMDelta,
+    "PriceAdj_Simple": apply_price_adj,
+    "TruncateBefore": apply_truncate_before,
+    "TruncateAfter": apply_truncate_after,
+    "NoChange": apply_nochange   
+}
+
+
+
+<Main calc enginer and shaping>
+# ============================================================
+# CONFIGURATION
+# ============================================================
+YEAR_MIN, YEAR_MAX = int(start_year), int(end_year)
+# ============================================================
+# SCENARIO ENGINE
+# ============================================================
+run_start = datetime.now()
+scenario_results = []
+
+for scen in scenario_instructions_df["Scenario"].dropna().unique():
+
+    scen_df = scenario_instructions_df.query("Scenario == @scen and Include == True")
+
+    # --- Skip scenario entirely if there are no included rows ---
+    if scen_df.empty:
+        print(f"Skipping scenario {scen} (no included inputs).")
+        continue
+
+    scen_results = []
+
+    # --- NoChange cases ---
+    nochange_df = scen_df.query("Operation == 'NoChange' or Operation.isna()")
+    for _, r in nochange_df.iterrows():
+        cid = r["ID"]
+        subset = data_profile_tall.query("ID == @cid").copy()
+        subset["Scenario"] = scen
+        subset["Operation"] = "NoChange"
+        subset["Param1"], subset["Param2"], subset["Param3"] = 0, 0, 0
+        scen_results.append(subset)
+
+    # --- Active operations ---
+    active_ops = scen_df.query("Operation != 'NoChange' and Operation.notna()")
+    for _, r in active_ops.iterrows():
+        print(
+    f"\n--- APPLYING OPERATION ---\n"
+    f"Scenario: {scen}\n"
+    f"Case: {r['ID']}\n"
+    f"Operation: {r['Operation']}\n"
+    f"Param1: {r['Param1']} | Param2: {r['Param2']} | Param3: {r['Param3']} | Param4: {r['Param4']} | Param5: {r['Param5']}\n"
+)
+
+        cid = r["ID"]
+        op = r["Operation"]
+        par1 = r["Param1"]
+        par2 = r["Param2"]
+        par3 = r["Param3"]
+
+        subset = data_profile_tall.query("ID == @cid").copy()
+        subset["Scenario"], subset["Operation"] = scen, op
+        subset["Param1"], subset["Param2"], subset["Param3"] = par1, par2, par3
+
+        func = operation_functions.get(op, lambda d, *_: d)
+        subset = func(subset, par1, par2, par3)
+
+        subset = subset[(subset["Year"] >= YEAR_MIN) & (subset["Year"] <= YEAR_MAX)]
+        scen_results.append(subset)
+
+    # --- Skip if no results were generated ---
+    if not scen_results:
+        print(f"Skipping scenario {scen} (no scen_results).")
+        continue
+
+    # --- Combine ---
+    scen_combined = pd.concat(scen_results, ignore_index=True)
+
+    # --- Global price adj ---
+    scen_combined = apply_global_price(scen_combined, global_price, scen)
+
+    # --- BRENT price adj ---
+    scen_combined = apply_Brent_price(scen_combined, brent_price, scen)
+
+    # --- HH price adj ---
+    scen_combined = apply_hh_price(scen_combined, hh_price, scen)
+
+    # --- NBP price adj ---
+    scen_combined = apply_nbp_price(scen_combined, npb_price, scen)
+
+    # --- JKM price adj ---
+    scen_combined = apply_jkm_price(scen_combined, jkm_price, scen)
+
+    # --- Append ---
+    scenario_results.append(scen_combined)
+
+
+        
+# ============================================================
+# COMBINE RESULTS
+# ============================================================
+# Combine all scenario results
+scenario_outputs = pd.concat(scenario_results, ignore_index=True)
+
+# Add run timestamp column for traceability
+scenario_outputs["RunDateTime"] = run_start.strftime("%Y-%m-%d %H:%M:%S")
+
+
+# Merge friendly scenario names if available
+if "scenario_names_frame" in locals():
+    scenario_outputs = scenario_outputs.merge(
+        scenario_names_frame.rename(columns={"Name": "ScenarioName"}),
+        on="Scenario",
+        how="left"
+    )
+
+
+# ============================================================
+# CONVERT TO WIDE FORMAT
+# ============================================================
+if "ScenarioName" in scenario_outputs.columns:
+    index_cols = ["Scenario", "ScenarioName", "ID", "Case", "Metric"]
+else:
+    index_cols = ["Scenario", "ID", "Case", "Metric"]
+
+scenario_outputs_wide = (
+    scenario_outputs
+    .pivot_table(
+        index=index_cols,
+        columns="Year",
+        values="Value",
+        aggfunc="first"
+    )
+    .reset_index()
+)
+
+# Clean up column names
+scenario_outputs_wide.columns.name = None
+scenario_outputs_wide.columns = [str(c) for c in scenario_outputs_wide.columns]
+
+# ============================================================
+# ENSURE ALL YEARS PRESENT (EVEN IF EMPTY)
+# ============================================================
+all_years = [str(y) for y in range(YEAR_MIN, YEAR_MAX + 1)]
+existing_cols = [c for c in scenario_outputs_wide.columns if c.isdigit()]
+
+for y in all_years:
+    if y not in existing_cols:
+        scenario_outputs_wide[y] = np.nan  # placeholder
+
+non_year_cols = [c for c in scenario_outputs_wide.columns if not c.isdigit()]
+scenario_outputs_wide = scenario_outputs_wide[non_year_cols + all_years]
+
+# Fill blanks or zeros (choose one)
+scenario_outputs_wide = scenario_outputs_wide.fillna(0)
+# scenario_outputs_wide = scenario_outputs_wide.fillna("")  # uncomment for blanks
+
+# ============================================================
+# FINAL OUTPUTS
+# ============================================================
+scenario_outputs_tall = scenario_outputs  # keep tall version
+scenario_outputs_min = scenario_outputs[["Scenario","ScenarioName","ID","Case","Metric","Year","Value"]].copy()
+
+
+<< Timer End >>
+
+run_end_model = datetime.now()
+out = run_end_model.strftime("%Y-%m-%d %H:%M:%S")
+
+<< Duration >>
+run_duration = (run_end_model - run_start_model).total_seconds()
+
