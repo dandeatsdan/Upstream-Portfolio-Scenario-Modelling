@@ -1,4 +1,3 @@
-
 # Upstream Portfolio Scenario Modelling Framework
 
 ## Project Overview
@@ -29,33 +28,31 @@ The architecture applies principles including **data minimisation, purpose limit
 
 ## Repository Navigation
 
-```text
-Upstream-Portfolio-Scenario-Modelling/
-│
-├── 00_semantic_model/
-│   └── Documentation and sanitised artefacts describing the
-│       governed semantic layer supporting the modeller
-│
-├── 01_excel_application/
-│   ├── Upstream_Portfolio_Scenario_Modeller_Sanitised.xlsm
-│   ├── DAX/
-│   │   ├── oledb_queries/
-│   │   └── power_pivot_measures/
-│   ├── power_query/
-│   ├── python/
-│   └── vba/
-│
-├── 02_architecture/
-│   ├── source/
-│   │   └── Master editable draw.io architecture file
-│   └── svg/
-│       └── Published architecture and engineering diagrams
-│
-├── 03_evidence/
-│   └── Selected sanitised testing and validation evidence
-│
-└── README.md
-```
+    Upstream-Portfolio-Scenario-Modelling/
+    │
+    ├── 00_semantic_model/
+    │   └── Documentation and sanitised artefacts describing the
+    │       governed semantic layer supporting the modeller
+    │
+    ├── 01_excel_application/
+    │   ├── Upstream_Portfolio_Scenario_Modeller_Sanitised.xlsm
+    │   ├── DAX/
+    │   │   ├── oledb_queries/
+    │   │   └── power_pivot_measures/
+    │   ├── power_query/
+    │   ├── python/
+    │   └── vba/
+    │
+    ├── 02_architecture/
+    │   ├── source/
+    │   │   └── Master editable draw.io architecture file
+    │   └── svg/
+    │       └── Published architecture and engineering diagrams
+    │
+    ├── 03_evidence/
+    │   └── Selected sanitised testing and validation evidence
+    │
+    └── README.md
 
 ### `00_semantic_model`
 
@@ -73,11 +70,40 @@ Contains the **sanitised Excel scenario modelling application** together with th
 
 ### `02_architecture`
 
-Contains the technical architecture and engineering diagrams for the framework.
+Contains the technical architecture and engineering diagrams developed for the Upstream Portfolio Scenario Modelling Framework.
 
-The editable diagrams are maintained in a single master **draw.io** source file, with individual diagrams exported as **SVG** for straightforward viewing and reuse in project documentation.
+The architecture folder is divided into:
 
-The diagram set covers the end-to-end architecture, semantic-model integration, controlled transaction scope, manual profile integration, Financial Entity translation, Excel interface, scenario configuration, Python engine architecture and Python dependency structure.
+* **`source/`** — the master editable draw.io file used to maintain the architecture diagrams;
+* **`svg/`** — individual SVG exports for viewing and use within project documentation.
+
+#### Viewing the Architecture Diagrams
+
+Individual architecture diagrams are provided as SVG files to preserve image quality and scalability.
+
+GitHub's standard file preview may not render some SVG files correctly. If this occurs, the diagrams can be viewed by:
+
+* opening the repository in **VS Code**;
+* opening the repository in **GitHub Codespaces**; or
+* downloading and opening the SVG file locally in a compatible browser or image viewer.
+
+The editable master source is retained separately in the `source/` folder.
+
+#### Architecture Diagram Set
+
+The diagram set documents the framework from end-to-end solution architecture through to detailed technical implementation:
+
+1. **Overall Solution Architecture**
+2. **Semantic Model Data Preparation and Integration**
+3. **Controlled Transaction Scope and Calculated Member Derivation**
+4. **Controlled Manual Profile Integration**
+5. **Financial Entity to Modelling Case Translation**
+6. **Controlled Semantic Model to Excel Interface**
+7. **Scenario Configuration, Decision Workflow and Model Instruction Generation**
+8. **Python Scenario Modelling Engine Architecture**
+9. **Python Scenario Modelling Engine and Dependency Map**
+
+Together, these diagrams describe the flow from governed source data through data preparation, scenario configuration and model execution to analytical outputs.
 
 ### `03_evidence`
 
@@ -90,7 +116,7 @@ Full business evidence and confidential project materials are maintained separat
 The framework has been developed around several core principles:
 
 * **Transparency:** assumptions, transformations and modelling logic should remain inspectable.
-* **Traceability:** source data, case mappings, scenario operations and parameters should remain identifiable through the modelling workflow.
+* **Traceability:** source data, case mappings, scenario operations and parameters should remain identifiable throughout the modelling workflow.
 * **Human oversight:** the framework supports expert judgement rather than replacing accountable business decision-making.
 * **Consistency:** common modelling operations are applied systematically across comparable cases and scenarios.
 * **Data minimisation:** only data required for the modelling purpose is selected and processed.
@@ -127,11 +153,10 @@ The accompanying research examined how a governed scenario modelling framework c
 
 ## Recommended VS Code Extensions
 
-The repository contains Python, DAX, Power Query/M, draw.io, Markdown and PDF artefacts.  
+The repository contains Python, DAX, Power Query/M, draw.io, Markdown and PDF artefacts.
+
 A set of recommended VS Code extensions is provided in `.vscode/extensions.json` to improve syntax highlighting and file preview support.
 
-These extensions are developer conveniences only and are not runtime dependencies of the modelling solution.
+These extensions are **developer conveniences only** and are not runtime dependencies of the modelling solution.
 
 ---
-
-
