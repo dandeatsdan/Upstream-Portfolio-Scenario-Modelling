@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "powerquery.vscode-powerquery",
+    "huyza.dax-language",
+    "nopeslide.vscode-drawio-plugin-mermaid",
+    "shd101wyy.markdown-preview-enhanced",
+    "tomoki1207.pdf"
+  ]
+}
