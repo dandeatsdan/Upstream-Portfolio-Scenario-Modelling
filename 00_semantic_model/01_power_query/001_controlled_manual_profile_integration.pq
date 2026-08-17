@@ -40,6 +40,12 @@
 // while preserving source identification, controlled metadata,
 // surrogate entity identity and a standardised downstream schema.
 //
+// Security
+// --------
+// Production SharePoint locations and workbook paths have been removed
+// from this repository version and replaced with descriptive
+// placeholders.
+//
 // Design principles:
 // Controlled metadata | Surrogate entity identity | Standardised schema |
 // Source traceability | Data quality by design | Governed extensibility |
