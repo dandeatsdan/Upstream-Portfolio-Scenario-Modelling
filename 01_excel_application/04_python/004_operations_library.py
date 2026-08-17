@@ -1446,36 +1446,81 @@ def apply_CapexAbsolute(
 
     for adjustment_amount, adjustment_year in adjustments:
 
-        # Skip an incomplete or zero adjustment pair
-        if (
+        # Scenario preparation converts blank numeric parameters to zero.
+        # Therefore zero is treated as "not supplied" for pair validation.
+        amount_missing = (
             pd.isna(adjustment_amount)
             or float(adjustment_amount) == 0
-            or pd.isna(adjustment_year)
+        )
+
+        year_missing = (
+            pd.isna(adjustment_year)
             or int(adjustment_year) == 0
-        ):
+        )
+
+        # Both blank / zero means this adjustment pair is unused.
+        if amount_missing and year_missing:
             continue
 
-        adjustment_year = int(adjustment_year)
+        # One supplied without the other is an invalid configuration.
+        if amount_missing or year_missing:
+            raise ValueError(
+                "Each CAPEX adjustment requires both an "
+                "adjustment amount and an adjustment year."
+            )
+
+        adjustment_amount = float(
+            adjustment_amount
+        )
+
+        adjustment_year = int(
+            adjustment_year
+        )
 
         if adjustment_year < YEAR_MIN or adjustment_year > YEAR_MAX:
             raise ValueError(
                 f"CAPEX adjustment year {adjustment_year} falls "
-                "outside the model horizon."
+                f"outside the model horizon "
+                f"{YEAR_MIN}–{YEAR_MAX}."
             )
 
         # Positive input means additional CAPEX, which is negative
         # under the model's cash-flow sign convention.
-        capex_delta = -float(adjustment_amount)
+        capex_delta = -adjustment_amount
 
-        adjustment_mask = (
-            result["Metric"].isin(impacted_metrics)
-            & (result["Year"] == adjustment_year)
-        )
+        for metric in impacted_metrics:
 
-        result.loc[adjustment_mask, "Value"] = (
-            result.loc[adjustment_mask, "Value"].fillna(0)
-            + capex_delta
-        )
+            metric_year_mask = (
+                (result["Metric"] == metric)
+                & (result["Year"] == adjustment_year)
+            )
+
+            matching_rows = int(
+                metric_year_mask.sum()
+            )
+
+            if matching_rows > 1:
+                raise ValueError(
+                    f"Expected no more than one '{metric}' row for "
+                    f"{adjustment_year}, but found {matching_rows}."
+                )
+
+            if matching_rows == 0:
+                raise ValueError(
+                    f"Metric '{metric}' is missing for "
+                    f"{adjustment_year}."
+                )
+
+            result.loc[
+                metric_year_mask,
+                "Value"
+            ] = (
+                result.loc[
+                    metric_year_mask,
+                    "Value"
+                ].fillna(0)
+                + capex_delta
+            )
 
     return result
 
@@ -1531,7 +1576,6 @@ def apply_CashCostAbsolute(
 
     The same monetary delta is applied to:
         - Total Cash Costs
-        - EBITDA
         - Underlying RCOP
         - Operating Cashflow
         - Pre Tax Cash Flow
@@ -1541,7 +1585,6 @@ def apply_CashCostAbsolute(
 
     impacted_metrics = [
         "Total Cash Costs",
-        "EBITDA",
         "Underlying RCOP",
         "Operating Cashflow",
         "Pre Tax Cash Flow"
@@ -1554,26 +1597,36 @@ def apply_CashCostAbsolute(
 
     for adjustment_amount, adjustment_year in adjustments:
 
-        amount_missing = pd.isna(adjustment_amount)
-        year_missing = pd.isna(adjustment_year)
+        # Scenario preparation converts blank numeric parameters to zero.
+        # Therefore zero is treated as "not supplied" for pair validation.
+        amount_missing = (
+            pd.isna(adjustment_amount)
+            or float(adjustment_amount) == 0
+        )
 
-        # Both blank means this adjustment pair is unused.
+        year_missing = (
+            pd.isna(adjustment_year)
+            or int(adjustment_year) == 0
+        )
+
+        # Both blank / zero means this adjustment pair is unused.
         if amount_missing and year_missing:
             continue
 
-        # Prevent partially completed adjustment pairs.
+        # One supplied without the other is an invalid configuration.
         if amount_missing or year_missing:
             raise ValueError(
                 "Each cash-cost adjustment requires both an "
                 "adjustment amount and an adjustment year."
             )
 
-        adjustment_amount = float(adjustment_amount)
-        adjustment_year = int(adjustment_year)
+        adjustment_amount = float(
+            adjustment_amount
+        )
 
-        # Treat zero as no adjustment.
-        if adjustment_amount == 0:
-            continue
+        adjustment_year = int(
+            adjustment_year
+        )
 
         if adjustment_year < YEAR_MIN or adjustment_year > YEAR_MAX:
             raise ValueError(
@@ -1593,7 +1646,9 @@ def apply_CashCostAbsolute(
                 & (result["Year"] == adjustment_year)
             )
 
-            matching_rows = int(metric_year_mask.sum())
+            matching_rows = int(
+                metric_year_mask.sum()
+            )
 
             if matching_rows > 1:
                 raise ValueError(
@@ -1607,8 +1662,14 @@ def apply_CashCostAbsolute(
                     f"{adjustment_year}."
                 )
 
-            result.loc[metric_year_mask, "Value"] = (
-                result.loc[metric_year_mask, "Value"].fillna(0)
+            result.loc[
+                metric_year_mask,
+                "Value"
+            ] = (
+                result.loc[
+                    metric_year_mask,
+                    "Value"
+                ].fillna(0)
                 + cash_cost_delta
             )
 
