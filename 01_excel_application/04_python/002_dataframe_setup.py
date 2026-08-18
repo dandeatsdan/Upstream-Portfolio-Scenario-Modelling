@@ -1,6 +1,89 @@
-####################################
-## DATAFRAME SETUP + VALIDATION ####
-####################################
+# ============================================================
+# MODEL INPUT PREPARATION & VALIDATION
+# ============================================================
+#
+# Purpose
+# -------
+# This module prepares and validates the principal input datasets used
+# by the Upstream Portfolio Scenario Modelling Engine.
+#
+# It provides the controlled boundary between data loaded into the Excel
+# application and the Python calculation layer. Each input dataset is
+# standardised, checked for structural and business-rule consistency,
+# and converted into the DataFrame structure expected by downstream
+# scenario processing.
+#
+# Input datasets
+# --------------
+# 1/ Case Listing
+#    Defines the available modelling cases and associated business
+#    hierarchy attributes used for scenario configuration, filtering
+#    and output enrichment.
+#
+# 2/ Tax Rates
+#    Provides Country × Year Effective Tax Rate (ETR) and Cash Tax Rate
+#    (CTR) assumptions required by the post-tax calculation stage.
+#
+# 3/ Financial Profiles
+#    Provides the tall Case × Metric × Year financial and production
+#    profiles that form the baseline input to case-level scenario
+#    transformations.
+#
+# Processing pattern
+# ------------------
+# Each dataset follows a common preparation pattern:
+#
+# Excel input
+#     ↓
+# column standardisation
+#     ↓
+# required-field validation
+#     ↓
+# data-type and value cleaning
+#     ↓
+# structural / key validation
+#     ↓
+# deterministic sorting and finalisation
+#     ↓
+# validation summary and user-facing messages
+#
+# Validation controls
+# -------------------
+# The module checks, where applicable:
+# - required columns;
+# - missing or invalid key fields;
+# - duplicate IDs, cases or modelling keys;
+# - incomplete hierarchy attributes;
+# - valid Country × Year tax-rate uniqueness;
+# - tax-rate boundaries;
+# - duplicate Case × Metric × Year profile rows;
+# - blank or invalid profile values; and
+# - insignificant floating-point artefacts.
+#
+# Validation outputs
+# ------------------
+# Each input produces both:
+# - a business-facing status/message for the application user; and
+# - technical validation detail for inspection and troubleshooting.
+#
+# These messages are surfaced through the model log on the Excel Home
+# page, making input quality visible before scenario execution.
+#
+# Analytical boundary
+# -------------------
+# This module prepares and validates source inputs but does not modify
+# scenario assumptions or apply modelling operations. Scenario decisions
+# remain user-controlled and transformations are performed subsequently
+# by the scenario instruction and engine modules.
+#
+# Design principles
+# -----------------
+# Data quality by design | Explicit validation | Standardised schemas |
+# Key integrity | Transparent exception handling | Reproducibility |
+# Traceable inputs | Separation of preparation and calculation |
+# Fail-fast controls | Human-visible model health
+#
+# ============================================================
 
 # ============================================================
 # CASE LISTING DATAFRAME

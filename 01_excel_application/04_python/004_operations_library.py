@@ -1,3 +1,124 @@
+# ============================================================
+# SCENARIO MODELLING OPERATIONS LIBRARY
+# ============================================================
+#
+# Purpose
+# -------
+# This module contains the reusable case-level transformation functions
+# used by the Upstream Portfolio Scenario Modelling Framework.
+#
+# Each function implements a defined modelling operation that can be
+# selected by the user within the Excel scenario configuration sheets.
+# The scenario engine does not contain the detailed transformation logic
+# itself; instead, it routes each validated instruction to the relevant
+# function in this operations library.
+#
+# The operations are designed to transform copies of the underlying
+# case profile while preserving the original baseline dataset.
+#
+# Operation categories
+# --------------------
+# 1/ Control
+#    NoChange
+#
+# 2/ Timing
+#    Delay
+#    Accelerate
+#    TruncateBefore
+#    TruncateAfter
+#
+# 3/ Ownership / A&D
+#    Increase (Farm-In)
+#    Dilution (Farm-Down)
+#
+# 4/ Proportional adjustments
+#    ProdnAdj
+#    CostAdjOpex
+#    CostAdjCapex
+#
+# 5/ Absolute financial adjustments
+#    CapexAbsolute
+#    OpexAbsolute
+#
+# Supporting helper functions are used where an operation requires a
+# one-off financial event, including:
+# - delay cash-cost penalties;
+# - acceleration CAPEX;
+# - farm-in payments; and
+# - farm-down disposal proceeds.
+#
+# Execution pattern
+# -----------------
+# Scenario instruction
+#        ↓
+# operation_functions dictionary
+#        ↓
+# selected operation function
+#        ↓
+# parameter validation
+#        ↓
+# case-profile transformation
+#        ↓
+# transformed DataFrame returned to the scenario engine
+#
+# Parameter interface
+# -------------------
+# The engine supplies each operation with a common Param1–Param5
+# interface. The meaning and requirement of each parameter are specific
+# to the selected operation and are documented within the corresponding
+# function.
+#
+# Blank numeric parameters may be standardised to zero by the upstream
+# scenario-preparation process. Operations that require paired inputs,
+# such as adjustment amount and adjustment year, therefore explicitly
+# distinguish between unused parameter pairs and partially completed
+# configurations.
+#
+# Validation and error handling
+# -----------------------------
+# Operation functions validate business-relevant constraints such as:
+# - whole-number timing changes;
+# - valid start/end-year ordering;
+# - percentage boundaries;
+# - model-horizon limits;
+# - required amount/year parameter pairs;
+# - expected metric availability; and
+# - duplicate metric/year records.
+#
+# Invalid configurations raise ValueError exceptions. These are captured
+# by the main scenario engine and returned to the user through the model
+# validation log rather than allowing an invalid scenario output to be
+# published.
+#
+# Financial logic
+# ---------------
+# Operations preserve the model's established sign conventions and
+# propagate financial impacts only to the metrics explicitly defined by
+# each operation.
+#
+# Percentage production, OPEX and CAPEX adjustments use the relevant
+# underlying financial drivers to propagate deltas into related earnings
+# and cash-flow metrics. Absolute adjustments apply defined monetary
+# deltas directly to the affected metrics.
+#
+# Design principles
+# -----------------
+# Modular operations | Standardised parameter interface |
+# Explicit business rules | Baseline preservation |
+# Consistent treatment | Embedded validation |
+# Transparent financial propagation | Human-controlled execution |
+# Separation of configuration and calculation | Reusable functions
+#
+# Governance
+# ----------
+# The operations library supports decision analysis rather than automated
+# decision-making. Users explicitly select the cases, operations and
+# parameters to apply. The engine executes those instructions consistently
+# but does not determine which scenario or portfolio decision is preferred.
+#
+# ============================================================
+
+
 ##############################
 ## OPERATION == NO CHANGE ####
 ##############################

@@ -1,4 +1,86 @@
 # ============================================================
+# SCENARIO INSTRUCTION PREPARATION & VALIDATION
+# ============================================================
+#
+# Purpose
+# -------
+# This module converts user-configured scenario selections from the
+# Excel scenario sheets into a standardised instruction dataset that
+# can be consumed by the Python scenario modelling engine.
+#
+# It acts as the controlled interface between the user-facing Excel
+# configuration layer and the engine execution layer.
+#
+# Processing flow
+# ---------------
+# 1. Read scenario configuration tables S1-S5 from Excel.
+# 2. Standardise user-facing column names into the engine schema.
+# 3. Convert inclusion selections into Boolean values.
+# 4. Translate user-facing operation labels into internal engine keys.
+# 5. Remove placeholder and unused rows.
+# 6. Clear operations associated with excluded cases.
+# 7. Default included cases with no valid operation to NoChange.
+# 8. Standardise Param1-Param5 as numeric engine inputs.
+# 9. Remove stale parameters from excluded or NoChange rows.
+# 10. Consolidate all prepared scenario instructions into one DataFrame.
+# 11. Retrieve scenario-level metadata from Excel.
+# 12. Generate user-facing validation messages for the Home-page model log.
+#
+# Standard instruction schema
+# ---------------------------
+# Scenario
+# ID
+# Case Name
+# Include
+# Operation
+# Param1
+# Param2
+# Param3
+# Param4
+# Param5
+#
+# Operation translation
+# ---------------------
+# Excel exposes descriptive operation names that are understandable to
+# business users. OPERATION_MAP translates these labels into the stable
+# internal keys used by the operations library and scenario engine.
+#
+# This separates the user interface terminology from implementation
+# naming and allows either layer to evolve without requiring users to
+# interact directly with Python function names.
+#
+# Validation behaviour
+# --------------------
+# The preparation process applies lightweight configuration controls
+# before instructions reach the modelling engine.
+#
+# Examples include:
+# - excluded cases cannot retain active operations;
+# - included cases with blank or invalid operations default to NoChange;
+# - stale parameter values are cleared where they cannot apply; and
+# - blank numeric inputs are standardised to zero for downstream handling.
+#
+# Aggregated validation actions are recorded by scenario and surfaced to
+# the user through the application model log.
+#
+# Design principles
+# -----------------
+# Guided configuration | Standardised instructions |
+# Human-in-the-loop control | Explicit operation mapping |
+# Embedded validation | Consistent treatment |
+# Separation of interface and execution | Traceable preparation
+#
+# Governance
+# ----------
+# This module does not make portfolio decisions or choose modelling
+# operations on behalf of the user. It validates and standardises the
+# user's explicit selections so that they can be executed consistently
+# by the scenario engine.
+#
+# ============================================================
+
+
+# ============================================================
 # SCENARIO XL ARRAY DEFINITION
 # ============================================================
 

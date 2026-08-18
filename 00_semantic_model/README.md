@@ -1,6 +1,6 @@
 # Semantic Model
 
-This folder contains the **sanitised semantic-model implementation, supporting Power Query source code and representative datasets** developed for the Oil and Gas LTP Scenario Modeller.
+This folder contains the **working sanitised semantic model, supporting Power Query implementation and representative datasets** developed for the Oil and Gas LTP Scenario Modeller.
 
 The semantic model provides the governed data layer supporting the Excel scenario modelling application. It prepares and integrates financial and production profiles, controlled manual inputs, Financial Entity reference data, modelling-case mappings, plan classifications and supporting tax assumptions before exposing purpose-specific datasets to the modeller.
 
@@ -10,9 +10,9 @@ The repository version has been deliberately sanitised so that the implemented a
 
 | Artefact | Purpose |
 | :------- | :------ |
-| [Sanitised Datasets](00_sanitised_datasets/) | Representative datasets used by the repository version of the semantic model. These replace production enterprise and SharePoint data sources while preserving the schemas, relationships and data structures required to demonstrate the implemented solution. |
-| [Power Query](01_power_query/) | Documented Power Query implementation organised into the same functional modules used within the semantic model: controlled manual-profile integration, controlled transaction scope, Financial Entity-to-case translation and semantic-model reference data. |
-| [Working Solution](02_working_solution/) | Sanitised working semantic-model artefact configured to use the representative repository datasets rather than production data sources. |
+| [Sanitised Datasets](00_sanitised_datasets/) | Representative CSV datasets used by the repository version of the semantic model. These replace controlled enterprise and SharePoint source connections while preserving the schemas, relationships and representative structures required to demonstrate the implemented solution. |
+| [Power Query](01_power_query/) | Sanitised production Power Query implementation organised into the same functional modules used within the semantic model: controlled manual-profile integration, controlled transaction scope, Financial Entity-to-case translation and semantic-model reference data. |
+| [Working Semantic Model](02_working_solution/data_pipeline.pbix) | Working sanitised Power BI semantic model. Production-source ingestion has been replaced by the representative repository datasets, allowing the implemented model structure, transformations, relationships and downstream interfaces to be inspected without access to production data sources. |
 
 ## Power Query Modules
 
@@ -20,33 +20,29 @@ The Power Query implementation is organised to align with the technical architec
 
 | Module | Purpose |
 | :----- | :------ |
-| [Controlled Manual Profile Integration](01_power_query/001_controlled_manual_profile_integration.pq) | Documents the controlled ingestion and validation of approved manually supplied modelling profiles and associated metadata, including surrogate Financial Entity generation and integration into the common model structures. |
+| [Controlled Manual Profile Integration](01_power_query/001_controlled_manual_profile_integration.pq) | Documents the controlled ingestion and validation of manually supplied modelling profiles and associated metadata, including surrogate Financial Entity generation and integration into the common model structures. |
 | [Controlled Transaction Scope](01_power_query/002_controlled_transaction_scope.pq) | Documents the preparation of the principal financial and production transaction dataset, including account selection, calculated-member derivation, transaction scoping and generation of the integrated modelling dataset. |
 | [Financial Entity to Case Translation](01_power_query/003_financial_entity_case_translation.pq) | Documents the controlled mapping between source Financial Entities and the modelling cases presented to users within the scenario modeller. |
 | [Semantic Model Reference](01_power_query/004_semantic_model_reference.pq) | Documents supporting Financial Entity, hierarchy, Plan Type and tax reference structures used by the semantic model and downstream Excel interfaces. |
 
-## Sanitised Dataset Structure
+## Sanitised Datasets
 
-The representative datasets are grouped using the same functional structure as the Power Query implementation:
+The representative CSV datasets are organised using the same functional structure as the Power Query implementation.
 
-```text
-00_sanitised_datasets/
-│
-├── 001_controlled_manual_profile_integration/
-├── 002_controlled_transaction_scope/
-├── 003_financial_entity_case_translation/
-└── 004_semantic_model_reference/
-```
+| Dataset Group | Repository Data |
+| :------------ | :-------------- |
+| [Controlled Manual Profile Integration](00_sanitised_datasets/001_controlled_manual_profile_integration/) | `manual_metadata.csv` and `manual_profiles.csv` provide representative manual-input metadata and profile data without retaining the controlled source workbooks. |
+| [Controlled Transaction Scope](00_sanitised_datasets/002_controlled_transaction_scope/) | `accounts_calc_logics.csv`, `accounts_derived_names.csv`, `accounts_sorting.csv`, `accounts_system.csv` and `transaction.csv` provide the representative account structures, calculation mappings and transaction data required by the semantic-model pipeline. |
+| [Financial Entity to Case Translation](00_sanitised_datasets/003_financial_entity_case_translation/) | `fin_entity_to_case.csv` provides the sanitised mapping between representative Financial Entities and modelling cases. |
+| [Semantic Model Reference](00_sanitised_datasets/004_semantic_model_reference/) | `financial_entity.csv` and `tax_rates.csv` provide the representative Financial Entity and tax-reference structures required by the model. |
 
-This structure is intentional. It allows the repository datasets, Power Query implementation and architecture diagrams to be followed using a consistent module naming convention.
+This structure is intentional. It creates a consistent naming convention across the **architecture diagrams, Power Query implementation, sanitised datasets and working semantic model**, making the implementation easier to inspect and trace.
 
 ## Data Sanitisation Approach
 
 The production semantic model connects to governed enterprise data sources and controlled SharePoint inputs containing information that is not appropriate for inclusion within the project repository.
 
-A separate sanitised implementation was therefore created for submission.
-
-The sanitisation process applies multiple controls, including:
+A separate sanitised implementation was therefore created for submission. The sanitisation process applied multiple controls, including:
 
 - substantial reduction of the source population to a small representative set of Financial Entities;
 - replacement of Financial Entity, geography and organisational identifiers with anonymous or synthetic labels and keys;
@@ -58,15 +54,20 @@ The sanitisation process applies multiple controls, including:
 - removal of production server, database, SharePoint and other environment-specific connection details; and
 - retention only of data required to demonstrate the architecture and scenario-modelling workflow.
 
-The objective is **functional and structural equivalence rather than numerical equivalence**. The sanitised datasets are intended to preserve model schemas, relationships, transformations and representative analytical behaviour. They must not be interpreted as genuine historical or forecast portfolio information.
+The objective is **functional and structural equivalence rather than numerical equivalence**. The sanitised datasets preserve the schemas, relationships, transformations and representative analytical behaviour required to demonstrate the solution. They must not be interpreted as genuine historical or forecast portfolio information.
 
 ## Production Implementation Reference
 
-Where useful for technical inspection, the Power Query modules retain sanitised versions of the production implementation as **non-executable reference code**.
+The files contained in [`01_power_query`](01_power_query/) preserve sanitised versions of the production Power Query implementation for technical inspection.
 
-Production server names, database names, SharePoint locations and other environment-specific identifiers have been removed or replaced with descriptive placeholders.
+Production server names, database names, SharePoint locations and other environment-specific identifiers have been removed or replaced with descriptive placeholders. Where appropriate, production connection logic is retained as non-executable reference code so that the implemented data-engineering approach remains inspectable.
 
-Within the working sanitised model, these production connections are replaced by the representative datasets contained in `00_sanitised_datasets`.
+The working repository model [`data_pipeline.pbix`](02_working_solution/data_pipeline.pbix) replaces these controlled production sources with the representative CSV datasets contained in [`00_sanitised_datasets`](00_sanitised_datasets/).
+
+This deliberately separates two repository purposes:
+
+- **Implementation evidence** — the `.pq` modules document how the production solution integrates and transforms its governed sources.
+- **Working demonstration** — the `.pbix` uses sanitised representative data so that the semantic model can be inspected without production connectivity.
 
 Small, stable reference dimensions may instead be represented directly within Power Query using static tables where introducing a separate external dataset would add no meaningful value.
 
@@ -107,9 +108,11 @@ Purpose-specific queries expose the required case listing, modelling profiles an
 
 The sanitised repository implementation preserves this separation between **data preparation and governance in the semantic layer** and **scenario configuration and calculation in the application layer**.
 
+For the repository working solution, the corresponding Excel application is also provided in sanitised form so that the downstream modelling workflow can be demonstrated without requiring access to the production semantic model or enterprise data sources.
+
 ## Security and Confidentiality
 
-The datasets contained in this folder are provided solely to demonstrate the technical implementation.
+The datasets and working artefacts contained in this folder are provided solely to demonstrate the technical implementation.
 
 The repository must not contain:
 

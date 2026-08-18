@@ -1,7 +1,56 @@
-## This code is the main engine for the Upstream Portfolio Scenario Modelling application.
-## It orchestrates the execution of the model by coordinating the various components, including data preparation, scenario processing, and result generation.
-## The engine ensures that the model runs efficiently and accurately, handling any exceptions or errors that may arise during execution.
-## It serves as the central hub for managing the flow of data and logic within the application, enabling users to perform scenario analysis and generate insights based on their input parameters.
+# ============================================================
+# SCENARIO MODELLING ENGINE
+# ============================================================
+#
+# Purpose
+# -------
+# This module contains the main execution engine for the Upstream
+# Portfolio Scenario Modelling application. It coordinates validated
+# scenario instructions, case-level modelling operations, financial
+# calculations, output construction and final publication of results.
+#
+# The engine acts as the orchestration layer between the scenario
+# configuration prepared in Excel and the reusable transformation
+# functions contained within the operations library.
+#
+# Processing flow
+# ---------------
+# 1. Read the prepared scenario instructions and identify included cases.
+# 2. Route each case to the selected modelling operation using the
+#    operation-functions mapping.
+# 3. Apply the associated Param1-Param5 inputs to the case profile.
+# 4. Consolidate transformed case profiles into scenario-level results.
+# 5. Attach scenario, case and organisational metadata.
+# 6. Derive tax charge, cash tax, post-tax RCOP and post-tax cash flow.
+# 7. Calculate discounted post-tax cash flow for downstream NPV analysis.
+# 8. Validate the completed output before publishing it to Excel.
+# 9. Generate business and technical execution messages for the model log.
+#
+# Error handling and publication control
+# --------------------------------------
+# The engine follows a fail-safe publication pattern. Errors raised by
+# individual modelling operations or downstream calculation stages are
+# captured together with the relevant scenario, case and operation
+# context where available.
+#
+# A refreshed scenario output is published only when the complete engine
+# run remains valid. This prevents partially processed or internally
+# inconsistent results from replacing the previous valid model output.
+#
+# Analytical boundary
+# -------------------
+# The engine performs deterministic transformations and financial
+# calculations from user-defined instructions. It does not select cases,
+# determine assumptions, optimise portfolios or recommend a preferred
+# scenario. Interpretation and decision-making remain with the user.
+#
+# Design principles
+# -----------------
+# Modular execution | Separation of concerns | Explicit validation |
+# Traceable processing | Fail-safe publication | Consistent treatment |
+# Transparent calculations | Human oversight | Reproducible outputs
+#
+# ============================================================
 
 # ============================================================
 # SCENARIO ENGINE — RUN OPERATIONS
