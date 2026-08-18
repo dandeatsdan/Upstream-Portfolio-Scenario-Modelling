@@ -1,10 +1,10 @@
-## This code block defines a VBA subroutine that refreshes the source input data connections in an Excel workbook.
-## It prompts the user for confirmation before proceeding with the refresh, updates the status bar during the process, and writes a timestamp to a specified cell upon successful completion.
-## If an error occurs during the refresh, it displays an error message with details about the failed connection.
-## The subroutine is designed to be used in an Excel application where multiple data connections need to be refreshed, and it provides feedback to the user throughout the process.
-## Note that the connections are to a Power BI semantic model, and data is retrievd using OLE DB connections and DAX expressions.
-## The subroutine is intended to be run from a button on the Home sheet of the workbook, and it assumes that the user has the necessary permissions to refresh the data connections.
-## Data access is verified by the Power BI service working in conjunction with Microsoft Entra ID, and the user must be signed in to their Power BI account to successfully refresh the data.
+' This code block defines a VBA subroutine that refreshes the source input data connections in an Excel workbook.
+' It prompts the user for confirmation before proceeding with the refresh, updates the status bar during the process, and writes a timestamp to a specified cell upon successful completion.
+' If an error occurs during the refresh, it displays an error message with details about the failed connection.
+' The subroutine is designed to be used in an Excel application where multiple data connections need to be refreshed, and it provides feedback to the user throughout the process.
+' Note that the connections are to a Power BI semantic model, and data is retrievd using OLE DB connections and DAX expressions.
+' The subroutine is intended to be run from a button on the Home sheet of the workbook, and it assumes that the user has the necessary permissions to refresh the data connections.
+' Data access is verified by the Power BI service working in conjunction with Microsoft Entra ID, and the user must be signed in to their Power BI account to successfully refresh the data.
 
 Option Explicit
 

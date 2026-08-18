@@ -1,9 +1,9 @@
-## This code block defines a set of VBA subroutines for navigating between different worksheets (pages) in an Excel workbook.
-## Each subroutine corresponds to a specific worksheet and uses a helper function to open the desired page.
-## The subroutines provide a user-friendly way to switch between the Home page, various scenario pages, the health stats page, results page, dashboard, and help page.
-## The OpenPage function handles the actual navigation, ensuring that the target worksheet is made visible and activated.
-## The subroutines are designed to be triggered by buttons or other controls on the Home sheet, allowing users to easily access different parts of the application without manually searching for the worksheets.
-## The ShowTechSheets and HideTechSheets subroutines allow users to toggle the visibility of technical worksheets, providing a way to access or hide detailed data and configuration sheets as needed.
+' This code block defines a set of VBA subroutines for navigating between different worksheets (pages) in an Excel workbook.
+' Each subroutine corresponds to a specific worksheet and uses a helper function to open the desired page.
+' The subroutines provide a user-friendly way to switch between the Home page, various scenario pages, the health stats page, results page, dashboard, and help page.
+' The OpenPage function handles the actual navigation, ensuring that the target worksheet is made visible and activated.
+' The subroutines are designed to be triggered by buttons or other controls on the Home sheet, allowing users to easily access different parts of the application without manually searching for the worksheets.
+' The ShowTechSheets and HideTechSheets subroutines allow users to toggle the visibility of technical worksheets, providing a way to access or hide detailed data and configuration sheets as needed.
 
 Option Explicit
 

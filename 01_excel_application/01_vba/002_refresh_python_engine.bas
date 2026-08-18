@@ -1,13 +1,13 @@
-## This code block defines a VBA subroutine that activates the scenario engine in an Excel workbook.
-## It prompts the user for confirmation before proceeding with the activation, checks that the Python runtime is connected, and updates the status bar during the process.
-## If an error occurs during the activation, it displays an error message with details about the issue
-## The subroutine is designed to be used in an Excel application where the scenario engine is triggered via Python calculations, and it provides feedback to the user throughout the process.
-## The subroutine is intended to be run from a button on the Home sheet of the workbook, and it assumes that the user has the necessary permissions to run Python calculations.
-## The key step is Excel's calculation mode. By default, Excel is set to semi-automatic calculation mode (partial),this
-## This prevents Excel normal inputs and calculations perpetually re-triggering the Python code.
-## The code changes the calculation mode to automatic, adds in a small Python code equivalent to a print of a text string, and then triggers the rest of the Python code to execute.
-## Note Excel executes Python code in top to bottom, left to right per sheet and then works from leftmost sheet to rightmost sheet.
-## The code is designed to be run from the Home sheet, which is the leftmost sheet in the workbook.
+' This code block defines a VBA subroutine that activates the scenario engine in an Excel workbook.
+' It prompts the user for confirmation before proceeding with the activation, checks that the Python runtime is connected, and updates the status bar during the process.
+' If an error occurs during the activation, it displays an error message with details about the issue
+' The subroutine is designed to be used in an Excel application where the scenario engine is triggered via Python calculations, and it provides feedback to the user throughout the process.
+' The subroutine is intended to be run from a button on the Home sheet of the workbook, and it assumes that the user has the necessary permissions to run Python calculations.
+' The key step is Excel's calculation mode. By default, Excel is set to semi-automatic calculation mode (partial),this
+' This prevents Excel normal inputs and calculations perpetually re-triggering the Python code.
+' The code changes the calculation mode to automatic, adds in a small Python code equivalent to a print of a text string, and then triggers the rest of the Python code to execute.
+' Note Excel executes Python code in top to bottom, left to right per sheet and then works from leftmost sheet to rightmost sheet.
+' The code is designed to be run from the Home sheet, which is the leftmost sheet in the workbook.
 
 Option Explicit
 

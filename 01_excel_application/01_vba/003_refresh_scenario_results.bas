@@ -1,9 +1,9 @@
-## This code block defines a VBA subroutine that refreshes the scenario reporting outputs in an Excel workbook.
-## It prompts the user for confirmation before proceeding with the refresh, updates the status bar during the process, and writes a timestamp to a specified cell upon successful completion.
-## If an error occurs during the refresh, it displays an error message with details about the issue.    
-## The subroutine is designed to be used in an Excel application where scenario results are generated and displayed, and it provides feedback to the user throughout the process.
-## The subroutine is intended to be run from a button on the Home sheet of the workbook, and it assumes that the user has the necessary permissions to refresh the scenario results.
-## Note this code assumes that refreshing Excel's datamodel will subsequently trigger the refresh of all dependent reporting outputs, including pivot tables and charts, which are linked to the scenario results dataset.
+' This code block defines a VBA subroutine that refreshes the scenario reporting outputs in an Excel workbook.
+' It prompts the user for confirmation before proceeding with the refresh, updates the status bar during the process, and writes a timestamp to a specified cell upon successful completion.
+' If an error occurs during the refresh, it displays an error message with details about the issue.    
+' The subroutine is designed to be used in an Excel application where scenario results are generated and displayed, and it provides feedback to the user throughout the process.
+' The subroutine is intended to be run from a button on the Home sheet of the workbook, and it assumes that the user has the necessary permissions to refresh the scenario results.
+' Note this code assumes that refreshing Excel's datamodel will subsequently trigger the refresh of all dependent reporting outputs, including pivot tables and charts, which are linked to the scenario results dataset.
 
 Option Explicit
 
