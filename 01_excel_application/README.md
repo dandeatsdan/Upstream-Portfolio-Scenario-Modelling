@@ -132,7 +132,7 @@ The repository preserves the principal implementation artefacts used by the work
 
 The files contained within `01_vba`, `02_DAX`, `03_power_query` and `04_python` document the application logic used by the implemented solution.
 
-The working repository application [`scenario_modelling_framework.xlsm`](05_working_solution/scenario_modelling_framework.xlsm) replaces live semantic-model inputs with the representative CSV datasets contained in [`00_sanitised_datasets`](00_sanitised_datasets/).
+The working repository application [`scenario_modelling_application.xlsm`](05_working_solution/scenario_modelling_application.xlsm) replaces live semantic-model inputs with the representative CSV datasets contained in [`00_sanitised_datasets`](00_sanitised_datasets/).
 
 This deliberately separates two repository purposes:
 
