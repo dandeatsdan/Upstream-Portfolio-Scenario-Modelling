@@ -151,8 +151,10 @@ Upstream-Portfolio-Scenario-Modelling/
 │   └── README.md
 │
 ├── 04_user_guides/
-│   ├── application_user_guide.pdf
-│   └── README.md
+│   └── application_user_guide.pdf
+│
+├── 05_project_management/
+│   └── project_management_plan.pdf
 │
 └── README.md
 ```
@@ -257,6 +259,20 @@ The [Application User Guide](04_user_guides/application_user_guide.pdf) covers:
 - Financial Entity to Modelling Case translation
 - manual modelling-profile inputs
 
+---
+
+### [`05_project_management`](05_project_management/)
+
+Contains the principal project-management artefact supporting delivery of the Upstream Scenario Modelling Framework.
+
+The [Project Management Plan](05_project_management/project_management_plan.pdf) covers:
+
+- project objectives and scope
+- delivery timeline and workstreams
+- governance and delivery control
+- stakeholder engagement and communication
+- risk, dependencies, and mitigation
+- success criteria, validation, and project closure
 
 ---
 
