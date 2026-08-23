@@ -182,7 +182,7 @@ Detailed technical and sanitisation documentation is provided in the [Semantic M
 
 ### [`01_excel_application`](01_excel_application/)
 
-Contains the **working sanitised Oil and Gas LTP Scenario Modelling application** together with the extracted implementation artefacts supporting its operation.
+Contains the **working sanitised Scenario Modelling application** together with the extracted implementation artefacts supporting its operation.
 
 The folder includes:
 
@@ -263,7 +263,7 @@ The [Application User Guide](04_user_guides/application_user_guide.pdf) covers:
 
 ### [`05_project_management`](05_project_management/)
 
-Contains the principal project-management artefact supporting delivery of the Upstream Scenario Modelling Framework.
+Contains the principal project-management artefact supporting delivery of the Upstream Portfolio Scenario Modelling Framework.
 
 The [Project Management Plan](05_project_management/project_management_plan.pdf) covers:
 
