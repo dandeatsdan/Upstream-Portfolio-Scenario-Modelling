@@ -290,7 +290,18 @@ The [Project Management Plan](05_project_management/project_management_plan.pdf)
 
 ---
 
+### [`06_project_diary_evidence`](06_project_diary_evidence/)
 
+Contains high-resolution supporting evidence exhibits referenced in the DT603 Part B project diary.
+
+The folder includes:
+
+- E01–E11 evidence exhibits aligned to the six project-development themes
+- supporting material covering governance, analytical development, validation, collaboration, and responsible publication
+- higher-resolution versions provided to preserve readability where document conversion reduces image clarity
+- a README index mapping each evidence exhibit to its purpose and corresponding file
+
+---
 
 ## Data and Repository Sanitisation
 
