@@ -1,0 +1,7 @@
+"Area","Within prototype scope / intended work","Outside prototype or not validated as deliverable","Evidence / qualification"
+"Data foundation","Integrate governed planning profiles and controlled manual inputs; translate Financial Entities to modelling cases","Replace authoritative Plan Book or underlying enterprise planning systems","Project Management Plan slide 2"
+"Scenario analysis","Configurable case selection, timing, scaling, transaction and metric operations; multi-scenario comparison","Predictive or machine-learning forecasting","Project Management Plan slide 2"
+"Outputs and assurance","Financial/operational profiles; baseline reconciliation; validation, traceability and SME review","Enterprise production assurance or full financial reconciliation of every output","Project Management Plan slide 2; business validation evidence"
+"Financialisation","Explore post-tax and commodity sensitivity approaches where feasible","Treat unvalidated country-specific fiscal/tax or commodity-price capability as validated prototype functionality","Developed approaches withheld from submitted prototype pending business validation"
+"Deployment","Evaluate working prototype within approved environment","Fully industrialised enterprise deployment and live Plan Book replacement","Project Management Plan slide 2"
+"Optimisation","Assess potential for portfolio optimisation and prioritisation","Claim deployed or validated optimisation capability","DT602B Appendix A R13; Project Management Plan slide 2"
