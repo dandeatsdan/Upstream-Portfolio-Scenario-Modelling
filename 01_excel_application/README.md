@@ -100,6 +100,12 @@ The Python implementation is separated into a sequence of purpose-specific modul
 
 The modular structure deliberately separates **input preparation, user instruction translation, reusable business transformations and engine orchestration** rather than implementing the scenario methodology as one monolithic calculation block.
 
+### Post-tax net present value
+
+The [Python scenario engine](04_python/005_model_engine.py) generates discounted post-tax cash flow at 8%, treating 2026 as period one under the Excel NPV convention. The [Power Pivot measure](02_DAX/power_pivot_measures/001_measures.dax) aggregates the discounted values in the current filter context and reports post-tax NPV in $bn.
+
+For operating instructions, see the [Application User Guide](../04_user_guides/application_user_guide.pdf).
+
 ## Scenario Execution Workflow
 
 The implemented application follows a controlled user and processing workflow:
@@ -147,7 +153,7 @@ The corresponding sanitised semantic-model implementation is documented separate
 
 ## Architecture Alignment
 
-The Excel application and its interfaces are documented through the technical architecture diagrams contained in [`02_architecture`](../02_architecture/).
+The Excel application and its interfaces are documented through the technical architecture diagrams contained in [Solution Architecture](../02_architecture/README.md).
 
 | Architecture Diagram | Relevance to the Excel Application |
 | :------------------- | :--------------------------------- |

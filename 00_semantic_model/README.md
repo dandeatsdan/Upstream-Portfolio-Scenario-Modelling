@@ -73,7 +73,7 @@ Small, stable reference dimensions may instead be represented directly within Po
 
 ## Architecture Alignment
 
-The semantic-model implementation is documented through the technical architecture diagrams contained in [`02_architecture`](../02_architecture/). The first six diagrams in the architecture set describe the end-to-end flow from governed source data through semantic-model preparation and into the Excel scenario modelling application.
+The semantic-model implementation is documented through the technical architecture diagrams contained in [Solution Architecture](../02_architecture/README.md). The first six diagrams in the architecture set describe the end-to-end flow from governed source data through semantic-model preparation and into the Excel scenario modelling application.
 
 | Architecture Diagram | Relevance to the Semantic Model |
 | :------------------- | :------------------------------ |
